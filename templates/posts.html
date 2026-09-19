@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Blog Posts - MyBlog</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<nav class="navbar">
+
+    <div class="nav-container">
+
+        <a class="logo" href="{{ url_for('home') }}">
+            MyBlog
+        </a>
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('home') }}">
+                Home
+            </a>
+
+            {% if current_user.is_authenticated %}
+
+                <a href="{{ url_for('create_post') }}">
+                    Create Post
+                </a>
+
+                <a href="{{ url_for('logout') }}">
+                    Logout
+                </a>
+
+            {% else %}
+
+                <a href="{{ url_for('login') }}">
+                    Login
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<main class="container">
+
+    <div class="page-header">
+
+        <div>
+
+            <h1>Latest Blog Posts</h1>
+
+            {% if current_user.is_authenticated %}
+
+                <p>
+                    Welcome back,
+                    <strong>{{ current_user.username }}</strong>!
+                </p>
+
+            {% else %}
+
+                <p>
+                    Discover stories and ideas from our community.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        {% if current_user.is_authenticated %}
+
+            <a class="btn"
+               href="{{ url_for('create_post') }}">
+                + Create Post
+            </a>
+
+        {% endif %}
+
+    </div>
+
+
+    {% if posts %}
+
+        <div class="posts-grid">
+
+            {% for post in posts %}
+
+                <article class="post-card">
+
+                    <h2>
+
+                        <a href="{{ url_for('view_post', post_id=post.id) }}">
+
+                            {{ post.title }}
+
+                        </a>
+
+                    </h2>
+
+
+                    <p>
+
+                        {{ post.content[:200] }}
+
+                        {% if post.content|length > 200 %}
+                            ...
+                        {% endif %}
+
+                    </p>
+
+
+                    <div class="post-meta">
+
+                        Posted by User #{{ post.user_id }}
+
+                        {% if post.created_at %}
+                            · {{ post.created_at.strftime('%d %b %Y') }}
+                        {% endif %}
+
+                    </div>
+
+
+                    <br>
+
+
+                    <a href="{{ url_for('view_post', post_id=post.id) }}">
+
+                        Read More →
+
+                    </a>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+
+            <h2>No posts yet</h2>
+
+            <p>
+                Be the first person to share something!
+            </p>
+
+            {% if current_user.is_authenticated %}
+
+                <br>
+
+                <a class="btn"
+                   href="{{ url_for('create_post') }}">
+                    Create Your First Post
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+</main>
+
+
+<footer class="footer">
+
+    <p>
+        © 2026 MyBlog. Built with Flask.
+    </p>
+
+</footer>
+
+</body>
+</html>
