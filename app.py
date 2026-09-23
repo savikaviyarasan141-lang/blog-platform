@@ -13,8 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
-
+load_dotenv(override=True)
 app = Flask(__name__)
 
 # =========================
@@ -28,11 +27,19 @@ database_url = URL.create(
     username=os.getenv("MYSQL_USER"),
     password=os.getenv("MYSQL_PASSWORD"),
     host=os.getenv("MYSQL_HOST"),
+    port=int(os.getenv("MYSQL_PORT")),
     database=os.getenv("MYSQL_DATABASE")
 )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "connect_args": {
+        "ssl": {}
+    }
+}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+
 
 db = SQLAlchemy(app)
 
