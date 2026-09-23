@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -13,6 +14,8 @@
 
 <body>
 
+<!-- ================= NAVBAR ================= -->
+
 <nav class="navbar">
 
     <div class="nav-container">
@@ -25,6 +28,10 @@
 
             <a href="{{ url_for('home') }}">
                 Home
+            </a>
+
+            <a href="{{ url_for('posts') }}">
+                Posts
             </a>
 
             {% if current_user.is_authenticated %}
@@ -43,6 +50,10 @@
                     Login
                 </a>
 
+                <a href="{{ url_for('register') }}">
+                    Register
+                </a>
+
             {% endif %}
 
         </div>
@@ -52,25 +63,37 @@
 </nav>
 
 
+<!-- ================= MAIN CONTENT ================= -->
+
 <main class="container">
 
-    <div class="page-header">
+    <!-- PAGE HEADER -->
+
+    <section class="page-header">
 
         <div>
 
-            <h1>Latest Blog Posts</h1>
+            <span class="section-label">
+                OUR BLOG
+            </span>
+
+            <h1>
+                Latest Stories
+            </h1>
 
             {% if current_user.is_authenticated %}
 
                 <p>
                     Welcome back,
-                    <strong>{{ current_user.username }}</strong>!
+                    <strong>{{ current_user.username }}</strong>.
+                    Explore the latest ideas and stories.
                 </p>
 
             {% else %}
 
                 <p>
-                    Discover stories and ideas from our community.
+                    Discover stories, ideas and experiences
+                    from our community.
                 </p>
 
             {% endif %}
@@ -82,13 +105,40 @@
 
             <a class="btn"
                href="{{ url_for('create_post') }}">
+
                 + Create Post
+
             </a>
 
         {% endif %}
 
-    </div>
+    </section>
 
+
+    <!-- SEARCH UI -->
+
+    <section class="blog-search">
+
+    <form class="search-box"
+          method="GET"
+          action="{{ url_for('posts') }}">
+
+        <span class="search-icon">
+            🔍
+        </span>
+
+        <input
+            type="text"
+            name="q"
+            value="{{ search }}"
+            placeholder="Search articles..."
+            aria-label="Search articles">
+
+    </form>
+
+</section>
+
+    <!-- POSTS -->
 
     {% if posts %}
 
@@ -97,6 +147,29 @@
             {% for post in posts %}
 
                 <article class="post-card">
+
+                    <!-- POST TOP -->
+
+                    <div class="post-card-top">
+
+                        <span class="post-badge">
+                            ARTICLE
+                        </span>
+
+                        {% if post.created_at %}
+
+                            <span class="post-date">
+
+                                {{ post.created_at.strftime('%d %b %Y') }}
+
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- TITLE -->
 
                     <h2>
 
@@ -109,36 +182,50 @@
                     </h2>
 
 
-                    <p>
+                    <!-- CONTENT PREVIEW -->
 
-                        {{ post.content[:200] }}
+                    <p class="post-excerpt">
 
-                        {% if post.content|length > 200 %}
+                        {{ post.content[:220] }}
+
+                        {% if post.content|length > 220 %}
                             ...
                         {% endif %}
 
                     </p>
 
 
-                    <div class="post-meta">
+                    <!-- POST FOOTER -->
 
-                        Posted by User #{{ post.user_id }}
+                    <div class="post-card-footer">
 
-                        {% if post.created_at %}
-                            · {{ post.created_at.strftime('%d %b %Y') }}
-                        {% endif %}
+                        <div class="post-author">
+
+    <span class="author-avatar">
+        {{ post.user.username[0]|upper }}
+    </span>
+
+    <div>
+
+        <small>Published by</small>
+
+        <strong>
+            {{ post.user.username }}
+        </strong>
+
+    </div>
+
+</div>
+
+                        <a class="read-more"
+                           href="{{ url_for('view_post', post_id=post.id) }}">
+
+                            Read Article
+                            <span>→</span>
+
+                        </a>
 
                     </div>
-
-
-                    <br>
-
-
-                    <a href="{{ url_for('view_post', post_id=post.id) }}">
-
-                        Read More →
-
-                    </a>
 
                 </article>
 
@@ -148,39 +235,104 @@
 
     {% else %}
 
-        <div class="empty-state">
+        <!-- EMPTY STATE -->
 
-            <h2>No posts yet</h2>
+        <section class="empty-state">
+
+            <div class="empty-icon">
+                ✍️
+            </div>
+
+            <h2>
+                No posts yet
+            </h2>
 
             <p>
+                There are no articles available right now.
                 Be the first person to share something!
             </p>
 
             {% if current_user.is_authenticated %}
 
-                <br>
-
                 <a class="btn"
                    href="{{ url_for('create_post') }}">
+
                     Create Your First Post
+
+                </a>
+
+            {% else %}
+
+                <a class="btn"
+                   href="{{ url_for('register') }}">
+
+                    Join MyBlog
+
                 </a>
 
             {% endif %}
 
-        </div>
+        </section>
 
     {% endif %}
 
 </main>
 
 
+<!-- ================= CTA ================= -->
+
+<section class="home-cta">
+
+    <div class="cta-content">
+
+        <span class="section-label">
+            HAVE SOMETHING TO SAY?
+        </span>
+
+        <h2>
+            Turn your ideas into a story.
+        </h2>
+
+        <p>
+            Share your thoughts, experiences and knowledge
+            with the MyBlog community.
+        </p>
+
+        {% if current_user.is_authenticated %}
+
+            <a class="btn"
+               href="{{ url_for('create_post') }}">
+
+                Start Writing
+
+            </a>
+
+        {% else %}
+
+            <a class="btn"
+               href="{{ url_for('register') }}">
+
+                Get Started
+
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<!-- ================= FOOTER ================= -->
+
 <footer class="footer">
 
     <p>
-        © 2026 MyBlog. Built with Flask.
+        © 2026 MyBlog. Built with Flask, MySQL & REST APIs.
     </p>
 
 </footer>
+
 
 </body>
 </html>

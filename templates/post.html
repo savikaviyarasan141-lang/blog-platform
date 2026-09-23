@@ -13,6 +13,8 @@
 
 <body>
 
+<!-- ================= NAVBAR ================= -->
+
 <nav class="navbar">
 
     <div class="nav-container">
@@ -47,6 +49,10 @@
                     Login
                 </a>
 
+                <a href="{{ url_for('register') }}">
+                    Register
+                </a>
+
             {% endif %}
 
         </div>
@@ -56,114 +62,174 @@
 </nav>
 
 
+<!-- ================= MAIN CONTENT ================= -->
+
 <main class="container">
 
     <div class="post-container">
 
-        <!-- =========================
-             Blog Post
-        ========================== -->
+
+        <!-- ================= BLOG ARTICLE ================= -->
 
         <article class="post-content">
 
-            <h1>{{ post.title }}</h1>
+            <span class="post-badge">
+                ARTICLE
+            </span>
+
+
+            <h1>
+                {{ post.title }}
+            </h1>
+
+
+            <!-- Article Meta -->
 
             <div class="post-meta">
 
-                Posted by User #{{ post.user_id }}
+                <span>
+                    Published by
+                    <strong>{{ post.user.username }}</strong>
+                </span>
 
                 {% if post.created_at %}
-                    · {{ post.created_at.strftime('%d %B %Y') }}
+
+                    <span>
+                        ·
+                        {{ post.created_at.strftime('%d %B %Y') }}
+                    </span>
+
                 {% endif %}
 
             </div>
 
-            <br>
+
+            <!-- Article Content -->
 
             <div class="post-text">
+
                 {{ post.content }}
+
             </div>
 
+
+            <!-- ================= POST ACTIONS ================= -->
 
             {% if current_user.is_authenticated
                   and current_user.id == post.user_id %}
 
-                <hr style="margin: 30px 0;">
+                <div class="post-actions">
 
-                <a class="btn"
-                   href="{{ url_for('edit_post', post_id=post.id) }}">
-                    Edit Post
-                </a>
+                    <!-- Edit Post -->
+
+                    <a
+                        class="btn"
+                        href="{{ url_for('edit_post', post_id=post.id) }}">
+
+                        Edit Post
+
+                    </a>
 
 
-                <form
-                    method="POST"
-                    action="{{ url_for('delete_post', post_id=post.id) }}"
-                    style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to delete this post?');">
+                    <!-- Delete Post -->
 
-                    <button
-                        type="submit"
-                        class="btn btn-danger">
-                        Delete Post
-                    </button>
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_post', post_id=post.id) }}"
+                        onsubmit="return confirm('Are you sure you want to delete this post?');">
 
-                </form>
+                        <button
+                            type="submit"
+                            class="btn btn-danger">
+
+                            Delete Post
+
+                        </button>
+
+                    </form>
+
+                </div>
 
             {% endif %}
 
         </article>
 
 
-        <!-- =========================
-             Comments
-        ========================== -->
+        <!-- ================= COMMENTS ================= -->
 
         <section class="comments-section">
 
-            <h2>
-                Comments
-                ({{ comments|length }})
-            </h2>
+            <div class="comments-header">
 
-            <br>
+                <div>
 
+                    <span class="section-label">
+                        COMMUNITY
+                    </span>
+
+                    <h2>
+                        Comments
+                        <span>({{ comments|length }})</span>
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= ADD COMMENT ================= -->
 
             {% if current_user.is_authenticated %}
 
                 <form
+                    class="comment-form"
                     method="POST"
                     action="{{ url_for('add_comment', post_id=post.id) }}">
 
                     <div class="form-group">
 
+                        <label for="comment">
+                            Share your thoughts
+                        </label>
+
                         <textarea
+                            id="comment"
                             name="content"
                             rows="5"
-                            placeholder="Share your thoughts..."
+                            placeholder="Write a thoughtful comment..."
                             required
                         ></textarea>
 
                     </div>
 
-                    <button class="btn" type="submit">
+                    <button
+                        class="btn"
+                        type="submit">
+
                         Add Comment
+
                     </button>
 
                 </form>
 
-                <br>
-
             {% else %}
 
-                <div class="empty-state">
+                <div class="comment-login">
 
                     <p>
-                        Please
+
+                        Want to join the conversation?
+
                         <a href="{{ url_for('login') }}">
-                            login
+                            Login
                         </a>
-                        to leave a comment.
+
+                        or
+
+                        <a href="{{ url_for('register') }}">
+                            create an account
+                        </a>.
+
                     </p>
 
                 </div>
@@ -171,64 +237,143 @@
             {% endif %}
 
 
-            <!-- Display Comments -->
+            <!-- ================= COMMENT LIST ================= -->
 
-            {% for comment in comments %}
+            <div class="comment-list">
 
-                <div class="comment">
+                {% for comment in comments %}
 
-                    <p>
-                        {{ comment.content }}
-                    </p>
+                    <div class="comment">
 
-                    <div class="comment-meta">
 
-                        User #{{ comment.user_id }}
+                        <!-- Comment Author -->
 
-                        {% if comment.created_at %}
-                            ·
-                            {{ comment.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                        <div class="comment-author">
+
+                            <span class="author-avatar">
+                                {{ comment.user.username[0]|upper }}
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    {{ comment.user.username }}
+                                </strong>
+
+                                {% if comment.created_at %}
+
+                                    <small>
+                                        {{ comment.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                                    </small>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Comment Content -->
+
+                        <p class="comment-text">
+                            {{ comment.content }}
+                        </p>
+
+
+                        <!-- ================= COMMENT ACTIONS ================= -->
+
+                        {% if current_user.is_authenticated
+                              and current_user.id == comment.user_id %}
+
+                            <div class="comment-actions">
+
+                                <!-- Edit Comment -->
+
+                                <a
+                                    href="{{ url_for('edit_comment', comment_id=comment.id) }}"
+                                    class="comment-edit">
+
+                                    Edit
+
+                                </a>
+
+
+                                <!-- Delete Comment -->
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('delete_comment', comment_id=comment.id) }}"
+                                    onsubmit="return confirm('Delete this comment?');">
+
+                                    <button
+                                        type="submit"
+                                        class="comment-delete">
+
+                                        Delete
+
+                                    </button>
+
+                                </form>
+
+                            </div>
+
                         {% endif %}
+
 
                     </div>
 
-                </div>
+                {% else %}
 
-            {% else %}
+                    <!-- ================= NO COMMENTS ================= -->
 
-                <div class="empty-state">
+                    <div class="empty-state">
 
-                    <p>
-                        No comments yet.
-                        Be the first to comment!
-                    </p>
+                        <div class="empty-icon">
+                            💬
+                        </div>
 
-                </div>
+                        <h3>
+                            No comments yet
+                        </h3>
 
-            {% endfor %}
+                        <p>
+                            Be the first person to share your thoughts!
+                        </p>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
 
         </section>
 
 
-        <br>
+        <!-- ================= BACK TO POSTS ================= -->
 
-        <a href="{{ url_for('posts') }}">
-            ← Back to All Posts
-        </a>
+        <div class="back-to-posts">
+
+            <a href="{{ url_for('posts') }}">
+                ← Back to All Posts
+            </a>
+
+        </div>
 
     </div>
 
 </main>
 
 
+<!-- ================= FOOTER ================= -->
+
 <footer class="footer">
 
     <p>
-        © 2026 MyBlog. Built with Flask.
+        © 2026 MyBlog. Built with Flask, MySQL & REST APIs.
     </p>
 
 </footer>
 
-</body>
 
+</body>
 </html>

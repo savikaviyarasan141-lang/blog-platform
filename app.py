@@ -36,6 +36,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+
 # =========================
 # Login Configuration
 # =========================
@@ -65,10 +66,16 @@ class Post(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
     user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id"),
         nullable=False
+    )
+
+    user = db.relationship(
+        "User",
+        backref="posts"
     )
 
 
@@ -78,15 +85,22 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
     user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id"),
         nullable=False
     )
+
     post_id = db.Column(
         db.Integer,
         db.ForeignKey("posts.id"),
         nullable=False
+    )
+
+    user = db.relationship(
+        "User",
+        backref="comments"
     )
 
 
@@ -96,6 +110,7 @@ class Comment(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
+
     return User.query.get(int(user_id))
 
 
@@ -105,7 +120,15 @@ def load_user(user_id):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+
+    latest_posts = Post.query.order_by(
+        Post.created_at.desc()
+    ).limit(3).all()
+
+    return render_template(
+        "index.html",
+        latest_posts=latest_posts
+    )
 
 
 # =========================
@@ -127,8 +150,12 @@ def register():
         ).first()
 
         if existing_user:
+
             flash("Username or email already exists.")
-            return redirect(url_for("register"))
+
+            return redirect(
+                url_for("register")
+            )
 
         hashed_password = generate_password_hash(password)
 
@@ -141,11 +168,17 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        flash("Registration successful. Please login.")
+        flash(
+            "Registration successful. Please login."
+        )
 
-        return redirect(url_for("login"))
+        return redirect(
+            url_for("login")
+        )
 
-    return render_template("register.html")
+    return render_template(
+        "register.html"
+    )
 
 
 # =========================
@@ -160,17 +193,28 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(
+            email=email
+        ).first()
 
-        if user and check_password_hash(user.password, password):
+        if user and check_password_hash(
+            user.password,
+            password
+        ):
 
             login_user(user)
 
-            return redirect(url_for("home"))
+            return redirect(
+                url_for("home")
+            )
 
-        flash("Invalid email or password.")
+        flash(
+            "Invalid email or password."
+        )
 
-    return render_template("login.html")
+    return render_template(
+        "login.html"
+    )
 
 
 # =========================
@@ -183,7 +227,9 @@ def logout():
 
     logout_user()
 
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
 
 
 # =========================
@@ -193,13 +239,34 @@ def logout():
 @app.route("/posts")
 def posts():
 
-    all_posts = Post.query.order_by(
-        Post.created_at.desc()
-    ).all()
+    search = request.args.get(
+        "q",
+        ""
+    ).strip()
+
+    if search:
+
+        all_posts = Post.query.filter(
+            (Post.title.ilike(
+                f"%{search}%"
+            )) |
+            (Post.content.ilike(
+                f"%{search}%"
+            ))
+        ).order_by(
+            Post.created_at.desc()
+        ).all()
+
+    else:
+
+        all_posts = Post.query.order_by(
+            Post.created_at.desc()
+        ).all()
 
     return render_template(
         "posts.html",
-        posts=all_posts
+        posts=all_posts,
+        search=search
     )
 
 
@@ -207,7 +274,10 @@ def posts():
 # Create Post - Web
 # =========================
 
-@app.route("/create-post", methods=["GET", "POST"])
+@app.route(
+    "/create-post",
+    methods=["GET", "POST"]
+)
 @login_required
 def create_post():
 
@@ -225,19 +295,27 @@ def create_post():
         db.session.add(post)
         db.session.commit()
 
-        return redirect(url_for("posts"))
+        return redirect(
+            url_for("posts")
+        )
 
-    return render_template("create_post.html")
+    return render_template(
+        "create_post.html"
+    )
 
 
 # =========================
 # View Post
 # =========================
 
-@app.route("/post/<int:post_id>")
+@app.route(
+    "/post/<int:post_id>"
+)
 def view_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     comments = Comment.query.filter_by(
         post_id=post.id
@@ -263,9 +341,13 @@ def view_post(post_id):
 @login_required
 def add_comment(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
-    content = request.form["content"].strip()
+    content = request.form[
+        "content"
+    ].strip()
 
     if content:
 
@@ -279,7 +361,95 @@ def add_comment(post_id):
         db.session.commit()
 
     return redirect(
-        url_for("view_post", post_id=post.id)
+        url_for(
+            "view_post",
+            post_id=post.id
+        )
+    )
+
+
+# =========================
+# Edit Comment - Web
+# =========================
+
+@app.route(
+    "/comment/<int:comment_id>/edit",
+    methods=["GET", "POST"]
+)
+@login_required
+def edit_comment(comment_id):
+
+    comment = Comment.query.get_or_404(
+        comment_id
+    )
+
+    # Only the comment owner can edit
+    if comment.user_id != current_user.id:
+
+        return (
+            "You are not allowed to edit this comment.",
+            403
+        )
+
+    # Update comment
+    if request.method == "POST":
+
+        content = request.form[
+            "content"
+        ].strip()
+
+        if content:
+
+            comment.content = content
+
+            db.session.commit()
+
+            return redirect(
+                url_for(
+                    "view_post",
+                    post_id=comment.post_id
+                )
+            )
+
+    return render_template(
+        "edit_comment.html",
+        comment=comment
+    )
+
+
+# =========================
+# Delete Comment - Web
+# =========================
+
+@app.route(
+    "/comment/<int:comment_id>/delete",
+    methods=["POST"]
+)
+@login_required
+def delete_comment(comment_id):
+
+    comment = Comment.query.get_or_404(
+        comment_id
+    )
+
+    # Only the comment owner can delete
+    if comment.user_id != current_user.id:
+
+        return (
+            "You are not allowed to delete this comment.",
+            403
+        )
+
+    post_id = comment.post_id
+
+    db.session.delete(comment)
+    db.session.commit()
+
+    return redirect(
+        url_for(
+            "view_post",
+            post_id=post_id
+        )
     )
 
 
@@ -294,21 +464,35 @@ def add_comment(post_id):
 @login_required
 def edit_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
+    # Only post owner can edit
     if post.user_id != current_user.id:
 
-        return "You are not allowed to edit this post.", 403
+        return (
+            "You are not allowed to edit this post.",
+            403
+        )
 
     if request.method == "POST":
 
-        post.title = request.form["title"]
-        post.content = request.form["content"]
+        post.title = request.form[
+            "title"
+        ]
+
+        post.content = request.form[
+            "content"
+        ]
 
         db.session.commit()
 
         return redirect(
-            url_for("view_post", post_id=post.id)
+            url_for(
+                "view_post",
+                post_id=post.id
+            )
         )
 
     return render_template(
@@ -328,16 +512,24 @@ def edit_post(post_id):
 @login_required
 def delete_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
+    # Only post owner can delete
     if post.user_id != current_user.id:
 
-        return "You are not allowed to delete this post.", 403
+        return (
+            "You are not allowed to delete this post.",
+            403
+        )
 
     db.session.delete(post)
     db.session.commit()
 
-    return redirect(url_for("posts"))
+    return redirect(
+        url_for("posts")
+    )
 
 
 # =========================================================
@@ -349,7 +541,10 @@ def delete_post(post_id):
 # GET All Posts
 # =========================
 
-@app.route("/api/posts", methods=["GET"])
+@app.route(
+    "/api/posts",
+    methods=["GET"]
+)
 def api_get_posts():
 
     posts = Post.query.order_by(
@@ -364,8 +559,10 @@ def api_get_posts():
             "user_id": post.user_id,
             "created_at":
                 post.created_at.isoformat()
-                if post.created_at else None
+                if post.created_at
+                else None
         }
+
         for post in posts
     ])
 
@@ -380,16 +577,24 @@ def api_get_posts():
 )
 def api_get_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     return jsonify({
+
         "id": post.id,
+
         "title": post.title,
+
         "content": post.content,
+
         "user_id": post.user_id,
+
         "created_at":
             post.created_at.isoformat()
-            if post.created_at else None
+            if post.created_at
+            else None
     })
 
 
@@ -418,10 +623,13 @@ def api_create_post():
     if not title or not content or not user_id:
 
         return jsonify({
-            "error": "title, content and user_id are required"
+            "error":
+                "title, content and user_id are required"
         }), 400
 
-    user = User.query.get(user_id)
+    user = User.query.get(
+        user_id
+    )
 
     if not user:
 
@@ -439,8 +647,13 @@ def api_create_post():
     db.session.commit()
 
     return jsonify({
-        "message": "Post created successfully",
-        "post_id": post.id
+
+        "message":
+            "Post created successfully",
+
+        "post_id":
+            post.id
+
     }), 201
 
 
@@ -454,14 +667,17 @@ def api_create_post():
 )
 def api_update_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     data = request.get_json()
 
     if not data:
 
         return jsonify({
-            "error": "JSON data is required"
+            "error":
+                "JSON data is required"
         }), 400
 
     if "title" in data:
@@ -475,7 +691,10 @@ def api_update_post(post_id):
     db.session.commit()
 
     return jsonify({
-        "message": "Post updated successfully"
+
+        "message":
+            "Post updated successfully"
+
     })
 
 
@@ -489,13 +708,18 @@ def api_update_post(post_id):
 )
 def api_delete_post(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     db.session.delete(post)
     db.session.commit()
 
     return jsonify({
-        "message": "Post deleted successfully"
+
+        "message":
+            "Post deleted successfully"
+
     })
 
 
@@ -509,7 +733,9 @@ def api_delete_post(post_id):
 )
 def api_get_comments(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     comments = Comment.query.filter_by(
         post_id=post.id
@@ -518,6 +744,7 @@ def api_get_comments(post_id):
     ).all()
 
     return jsonify([
+
         {
             "id": comment.id,
             "content": comment.content,
@@ -525,9 +752,12 @@ def api_get_comments(post_id):
             "post_id": comment.post_id,
             "created_at":
                 comment.created_at.isoformat()
-                if comment.created_at else None
+                if comment.created_at
+                else None
         }
+
         for comment in comments
+
     ])
 
 
@@ -541,14 +771,17 @@ def api_get_comments(post_id):
 )
 def api_create_comment(post_id):
 
-    post = Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(
+        post_id
+    )
 
     data = request.get_json()
 
     if not data:
 
         return jsonify({
-            "error": "JSON data is required"
+            "error":
+                "JSON data is required"
         }), 400
 
     content = data.get("content")
@@ -557,15 +790,19 @@ def api_create_comment(post_id):
     if not content or not user_id:
 
         return jsonify({
-            "error": "content and user_id are required"
+            "error":
+                "content and user_id are required"
         }), 400
 
-    user = User.query.get(user_id)
+    user = User.query.get(
+        user_id
+    )
 
     if not user:
 
         return jsonify({
-            "error": "User not found"
+            "error":
+                "User not found"
         }), 404
 
     comment = Comment(
@@ -578,8 +815,13 @@ def api_create_comment(post_id):
     db.session.commit()
 
     return jsonify({
-        "message": "Comment created successfully",
-        "comment_id": comment.id
+
+        "message":
+            "Comment created successfully",
+
+        "comment_id":
+            comment.id
+
     }), 201
 
 
@@ -588,4 +830,8 @@ def api_create_comment(post_id):
 # =========================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+
+    app.run(
+        debug=True
+    )
+
